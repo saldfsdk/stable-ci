@@ -6,6 +6,7 @@ import { createConfiguredHttpAdapter } from './adapters/configured-http.js'
 import { startDemoPaymentApp } from './core/demo-payment-app.js'
 import { loadConfig } from './config.js'
 import { runSuite } from './core/runner.js'
+import { writeJUnit } from './reporters/junit.js'
 import { scenarios } from './scenarios/builtins.js'
 import type { ScenarioResult } from './types.js'
 
@@ -185,6 +186,10 @@ program
     'stable-ci.yml',
   )
   .option('--json', 'Output JSON')
+  .option(
+    '--junit <path>',
+    'Write JUnit XML report',
+  )
   .action(async (options) => {
     try {
       const config = loadConfig(options.config)
@@ -217,6 +222,17 @@ program
         printResults(adapter.name, results)
       }
 
+      if (options.junit) {
+        writeJUnit(
+          options.junit,
+          adapter.name,
+          results,
+        )
+
+        console.log(
+          'JUnit report: ' + options.junit
+        )
+      }
       if (results.some((result) => !result.passed)) {
         process.exitCode = 1
       }
