@@ -21,9 +21,14 @@ scenarios:
   - missing_webhook
   - invalid_signature
   - underpayment
+  - overpayment
 
 expectations:
   underpayment:
     applicationStatus: manual_review
     ledgerEntries: 0
     credit: none
+  overpayment:
+    applicationStatus: completed
+    ledgerEntries: 1
+    credit: exact_expected

@@ -123,6 +123,12 @@ export async function startDemoPaymentApp(
             ? data.displayCurrency as Record<string, unknown>
             : undefined
 
+        const paidCurrency =
+          data &&
+          typeof data.paidCurrency === 'object' &&
+          data.paidCurrency !== null
+            ? data.paidCurrency as Record<string, unknown>
+            : undefined
         const isBvnk =
           body.source === 'payment' &&
           (
@@ -179,8 +185,20 @@ export async function startDemoPaymentApp(
           : String(body.eventId ?? '')
 
         const amount = isBvnk
-          ? Number(displayCurrency?.amount ?? 0)
+          ? Number(
+              paidCurrency?.amount ??
+              displayCurrency?.amount ??
+              0
+            )
           : Number(body.amount ?? 0)
+
+        const actualAmount = isBvnk
+          ? Number(
+              paidCurrency?.actual ??
+              displayCurrency?.actual ??
+              amount
+            )
+          : amount
 
         state.paymentId = paymentId
         state.webhookDeliveries += 1
@@ -225,8 +243,15 @@ export async function startDemoPaymentApp(
             state.applicationStatus = status
 
             if (status === 'completed') {
+              const creditAmount =
+                isBvnk &&
+                body.event === 'transactionConfirmed' &&
+                actualAmount > amount
+                  ? actualAmount
+                  : amount
+
               state.ledgerEntries += 1
-              state.creditedAmount += amount
+              state.creditedAmount += creditAmount
             }
           }
         }

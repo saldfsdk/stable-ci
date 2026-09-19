@@ -71,6 +71,11 @@ function safeObservation(
         webhookAccepted: false,
       }
 
+    case 'overpayment':
+      return {
+        ...o,
+        receivedAmount: 140,
+      }
     case 'underpayment':
       return {
         ...o,
@@ -130,6 +135,12 @@ function unsafeObservation(
         webhookAccepted: true,
       }
 
+    case 'overpayment':
+      return {
+        ...safe,
+        receivedAmount: 140,
+        creditedAmount: 140,
+      }
     case 'underpayment':
       return {
         ...safe,

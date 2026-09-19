@@ -7,6 +7,7 @@ export type ScenarioName =
   | 'retry_after_unknown_settlement'
   | 'invalid_signature'
   | 'underpayment'
+  | 'overpayment'
 
 export type ProviderStatus =
   | 'pending'

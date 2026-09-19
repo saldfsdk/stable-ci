@@ -9,6 +9,7 @@ const scenarioSchema = z.enum([
   'missing_webhook',
   'invalid_signature',
   'underpayment',
+  'overpayment',
 ])
 
 const applicationStatusSchema = z.enum([

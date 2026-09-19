@@ -180,6 +180,39 @@ export function createHttpDemoAdapter(
 
             break
           }
+          case 'overpayment': {
+            const provider = createBvnkProvider(
+              'stable-ci-local-secret'
+            )
+
+            const rendered = provider.render({
+              eventId: 'evt_overpayment_1',
+              paymentId,
+              eventType: 'transactionConfirmed',
+              status: 'completed',
+              amount,
+              actualAmount: 140,
+              asset: 'USDC',
+            })
+
+            const response = await fetch(
+              app.baseUrl + '/webhook',
+              {
+                method: 'POST',
+                headers: rendered.headers,
+                body: rendered.body,
+              }
+            )
+
+            if (!response.ok) {
+              throw new Error(
+                'Overpayment webhook returned HTTP ' +
+                response.status
+              )
+            }
+
+            break
+          }
           case 'invalid_signature': {
             providerStatus = 'failed'
             chainStatus = 'not_broadcast'
@@ -229,7 +262,11 @@ export function createHttpDemoAdapter(
           scenario,
           paymentId,
           expectedAmount: amount,
-          receivedAmount: scenario === 'underpayment' ? 60 : undefined,
+          receivedAmount: scenario === 'underpayment'
+            ? 60
+            : scenario === 'overpayment'
+              ? 140
+              : undefined,
           providerStatus,
           chainStatus,
           webhookDeliveries: state.webhookDeliveries,

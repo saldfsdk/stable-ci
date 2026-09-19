@@ -240,6 +240,26 @@ export function createConfiguredHttpAdapter(
           )
           break
 
+        case 'overpayment':
+          if (provider.name !== 'bvnk') {
+            throw new Error(
+              'overpayment currently requires the BVNK provider.'
+            )
+          }
+
+          receivedAmount = payment.amount * 1.4
+          providerStatus = 'completed'
+
+          await sendWebhook(
+            config,
+            provider,
+            'evt_overpayment_1',
+            'completed',
+            receivedAmount,
+            'transactionConfirmed',
+          )
+          break
+
         default:
           throw new Error(
             'Scenario is not supported by the configured HTTP adapter yet: ' +

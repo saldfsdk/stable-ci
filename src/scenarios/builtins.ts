@@ -85,4 +85,14 @@ export const scenarios: ScenarioDefinition[] = [
       credit: 'none',
     },
   },
+  {
+    name: 'overpayment',
+    description: 'The customer sends more than the requested payment amount.',
+    risk: 'Excess funds may be incorrectly credited to the main customer balance',
+    expected: {
+      applicationStatus: 'completed',
+      ledgerEntries: 1,
+      credit: 'exact_expected',
+    },
+  },
 ]
