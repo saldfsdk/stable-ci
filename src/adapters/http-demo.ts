@@ -155,6 +155,7 @@ export function createHttpDemoAdapter(
             const rendered = provider.render({
               eventId: 'evt_underpayment_1',
               paymentId,
+              eventType: 'transactionConfirmed',
               status: 'underpaid',
               amount,
               actualAmount: 60,

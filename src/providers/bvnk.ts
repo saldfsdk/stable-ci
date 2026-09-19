@@ -26,11 +26,15 @@ export function createBvnkProvider(
     name: 'bvnk',
 
     render(event) {
-      const actualAmount = event.actualAmount ?? event.amount
+      const eventType =
+        event.eventType ?? 'statusChanged'
+
+      const actualAmount =
+        event.actualAmount ?? event.amount
 
       const payload = {
         source: 'payment',
-        event: 'statusChanged',
+        event: eventType,
         data: {
           uuid: event.paymentId,
           reference: event.eventId,

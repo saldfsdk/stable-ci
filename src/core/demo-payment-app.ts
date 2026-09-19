@@ -125,7 +125,10 @@ export async function startDemoPaymentApp(
 
         const isBvnk =
           body.source === 'payment' &&
-          body.event === 'statusChanged' &&
+          (
+            body.event === 'statusChanged' ||
+            body.event === 'transactionConfirmed'
+          ) &&
           data !== undefined
 
         if (profile === 'safe' && isBvnk) {
@@ -169,6 +172,8 @@ export async function startDemoPaymentApp(
 
         const eventId = isBvnk
           ? String(data.reference ?? '') +
+            ':' +
+            String(body.event ?? '') +
             ':' +
             rawStatus
           : String(body.eventId ?? '')

@@ -1,6 +1,11 @@
+export type CanonicalWebhookEventType =
+  | 'statusChanged'
+  | 'transactionConfirmed'
+
 export type CanonicalWebhookEvent = {
   eventId: string
   paymentId: string
+  eventType?: CanonicalWebhookEventType
   status: 'pending' | 'completed' | 'failed' | 'underpaid'
   amount: number
   actualAmount?: number

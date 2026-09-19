@@ -63,6 +63,7 @@ async function sendWebhook(
   eventId: string,
   status: 'pending' | 'completed' | 'failed' | 'underpaid',
   actualAmount?: number,
+  eventType?: 'statusChanged' | 'transactionConfirmed',
 ) {
   const rendered = provider.render({
     eventId,
@@ -71,6 +72,7 @@ async function sendWebhook(
     amount: config.payment.amount,
     asset: config.payment.asset,
     actualAmount,
+    eventType,
   })
 
   const response = await fetch(
@@ -234,6 +236,7 @@ export function createConfiguredHttpAdapter(
             'evt_underpayment_1',
             'underpaid',
             receivedAmount,
+            'transactionConfirmed',
           )
           break
 
