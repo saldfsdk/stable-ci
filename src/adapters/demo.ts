@@ -71,6 +71,15 @@ function safeObservation(
         webhookAccepted: false,
       }
 
+    case 'late_payment':
+      return {
+        ...o,
+        providerStatus: 'expired',
+        receivedAmount: 100,
+        applicationStatus: 'manual_review',
+        ledgerEntries: 0,
+        creditedAmount: 0,
+      }
     case 'overpayment':
       return {
         ...o,
@@ -135,6 +144,13 @@ function unsafeObservation(
         webhookAccepted: true,
       }
 
+    case 'late_payment':
+      return {
+        ...safe,
+        applicationStatus: 'completed',
+        ledgerEntries: 1,
+        creditedAmount: 100,
+      }
     case 'overpayment':
       return {
         ...safe,

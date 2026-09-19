@@ -22,6 +22,7 @@ scenarios:
   - invalid_signature
   - underpayment
   - overpayment
+  - late_payment
 
 expectations:
   underpayment:
@@ -32,3 +33,7 @@ expectations:
     applicationStatus: completed
     ledgerEntries: 1
     credit: exact_expected
+  late_payment:
+    applicationStatus: manual_review
+    ledgerEntries: 0
+    credit: none

@@ -13,6 +13,7 @@ function toBvnkStatus(
     case 'completed':
       return 'COMPLETE'
     case 'failed':
+    case 'expired':
       return 'EXPIRED'
     case 'underpaid':
       return 'UNDERPAID'
@@ -47,6 +48,11 @@ export function createBvnkProvider(
             actual: actualAmount,
           },
           paidCurrency: {
+            currency: event.asset,
+            amount: event.amount,
+            actual: actualAmount,
+          },
+          walletCurrency: {
             currency: event.asset,
             amount: event.amount,
             actual: actualAmount,

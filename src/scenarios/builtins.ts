@@ -95,4 +95,14 @@ export const scenarios: ScenarioDefinition[] = [
       credit: 'exact_expected',
     },
   },
+  {
+    name: 'late_payment',
+    description: 'Funds arrive after the original payment has already expired.',
+    risk: 'Expired payment may be incorrectly revived and credited as a normal payment',
+    expected: {
+      applicationStatus: 'manual_review',
+      ledgerEntries: 0,
+      credit: 'none',
+    },
+  },
 ]

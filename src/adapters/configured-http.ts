@@ -61,9 +61,9 @@ async function sendWebhook(
   config: StableCiConfig,
   provider: WebhookProvider,
   eventId: string,
-  status: 'pending' | 'completed' | 'failed' | 'underpaid',
+  status: 'pending' | 'completed' | 'failed' | 'underpaid' | 'expired',
   actualAmount?: number,
-  eventType?: 'statusChanged' | 'transactionConfirmed',
+  eventType?: 'statusChanged' | 'transactionConfirmed' | 'transactionLate',
 ) {
   const rendered = provider.render({
     eventId,
@@ -257,6 +257,26 @@ export function createConfiguredHttpAdapter(
             'completed',
             receivedAmount,
             'transactionConfirmed',
+          )
+          break
+
+        case 'late_payment':
+          if (provider.name !== 'bvnk') {
+            throw new Error(
+              'late_payment currently requires the BVNK provider.'
+            )
+          }
+
+          receivedAmount = payment.amount
+          providerStatus = 'expired'
+
+          await sendWebhook(
+            config,
+            provider,
+            'evt_late_payment_1',
+            'expired',
+            receivedAmount,
+            'transactionLate',
           )
           break
 

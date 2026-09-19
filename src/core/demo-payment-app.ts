@@ -129,11 +129,18 @@ export async function startDemoPaymentApp(
           data.paidCurrency !== null
             ? data.paidCurrency as Record<string, unknown>
             : undefined
+        const walletCurrency =
+          data &&
+          typeof data.walletCurrency === 'object' &&
+          data.walletCurrency !== null
+            ? data.walletCurrency as Record<string, unknown>
+            : undefined
         const isBvnk =
           body.source === 'payment' &&
           (
             body.event === 'statusChanged' ||
-            body.event === 'transactionConfirmed'
+            body.event === 'transactionConfirmed' ||
+            body.event === 'transactionLate'
           ) &&
           data !== undefined
 
@@ -162,7 +169,10 @@ export async function startDemoPaymentApp(
           : String(body.status ?? 'pending')
 
         const status: ApplicationStatus =
-          rawStatus === 'COMPLETE'
+          isBvnk &&
+          body.event === 'transactionLate'
+            ? 'manual_review'
+            : rawStatus === 'COMPLETE'
             ? 'completed'
             : rawStatus === 'PROCESSING'
               ? 'pending'
@@ -194,9 +204,14 @@ export async function startDemoPaymentApp(
 
         const actualAmount = isBvnk
           ? Number(
-              paidCurrency?.actual ??
-              displayCurrency?.actual ??
-              amount
+              body.event === 'transactionLate'
+                ? walletCurrency?.actual ??
+                  paidCurrency?.actual ??
+                  displayCurrency?.actual ??
+                  amount
+                : paidCurrency?.actual ??
+                  displayCurrency?.actual ??
+                  amount
             )
           : amount
 
@@ -235,7 +250,14 @@ export async function startDemoPaymentApp(
             state.creditedAmount = amount
           }
         } else {
-          if (rawStatus === 'UNDERPAID') {
+          if (
+            isBvnk &&
+            body.event === 'transactionLate'
+          ) {
+            state.applicationStatus = 'completed'
+            state.ledgerEntries += 1
+            state.creditedAmount += actualAmount
+          } else if (rawStatus === 'UNDERPAID') {
             state.applicationStatus = 'completed'
             state.ledgerEntries += 1
             state.creditedAmount += amount
@@ -245,7 +267,8 @@ export async function startDemoPaymentApp(
             if (status === 'completed') {
               const creditAmount =
                 isBvnk &&
-                body.event === 'transactionConfirmed' &&
+                body.event === 'transactionConfirmed' ||
+            body.event === 'transactionLate' &&
                 actualAmount > amount
                   ? actualAmount
                   : amount

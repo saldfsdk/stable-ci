@@ -213,6 +213,41 @@ export function createHttpDemoAdapter(
 
             break
           }
+          case 'late_payment': {
+            providerStatus = 'expired'
+
+            const provider = createBvnkProvider(
+              'stable-ci-local-secret'
+            )
+
+            const rendered = provider.render({
+              eventId: 'evt_late_payment_1',
+              paymentId,
+              eventType: 'transactionLate',
+              status: 'expired',
+              amount,
+              actualAmount: amount,
+              asset: 'USDC',
+            })
+
+            const response = await fetch(
+              app.baseUrl + '/webhook',
+              {
+                method: 'POST',
+                headers: rendered.headers,
+                body: rendered.body,
+              }
+            )
+
+            if (!response.ok) {
+              throw new Error(
+                'Late payment webhook returned HTTP ' +
+                response.status
+              )
+            }
+
+            break
+          }
           case 'invalid_signature': {
             providerStatus = 'failed'
             chainStatus = 'not_broadcast'
@@ -266,7 +301,9 @@ export function createHttpDemoAdapter(
             ? 60
             : scenario === 'overpayment'
               ? 140
-              : undefined,
+              : scenario === 'late_payment'
+                ? 100
+                : undefined,
           providerStatus,
           chainStatus,
           webhookDeliveries: state.webhookDeliveries,

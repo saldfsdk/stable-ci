@@ -10,6 +10,7 @@ const scenarioSchema = z.enum([
   'invalid_signature',
   'underpayment',
   'overpayment',
+  'late_payment',
 ])
 
 const applicationStatusSchema = z.enum([

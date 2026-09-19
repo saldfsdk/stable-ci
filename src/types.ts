@@ -8,6 +8,7 @@ export type ScenarioName =
   | 'invalid_signature'
   | 'underpayment'
   | 'overpayment'
+  | 'late_payment'
 
 export type ProviderStatus =
   | 'pending'
@@ -15,6 +16,7 @@ export type ProviderStatus =
   | 'failed'
   | 'timeout'
   | 'underpaid'
+  | 'expired'
 
 export type ChainStatus =
   | 'not_broadcast'
