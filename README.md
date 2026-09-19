@@ -222,6 +222,97 @@ Current scenarios include:
 - `overpayment`
 - `late_payment`
 
+## Custom webhook providers
+
+`stable-ci` can test payment integrations that use providers without a built-in adapter.
+
+Use JSON webhook fixtures to describe the provider payloads that your application already accepts.
+
+Example `stable-ci.yml`:
+
+```yaml
+provider: custom
+
+webhookSecret: your-test-webhook-secret
+
+customProvider:
+  name: onswitch-like
+
+  fixtures:
+    pending: fixtures/pending.json
+    completed: fixtures/completed.json
+    underpaid: fixtures/underpaid.json
+    expired: fixtures/expired.json
+
+  signature:
+    header: x-switch-signature
+    algorithm: sha256
+    encoding: base64
+
+target:
+  name: payment-app
+  baseUrl: http://127.0.0.1:4310
+  endpoints:
+    reset: /reset
+    webhook: /webhook
+    state: /state
+    reconcile: /reconcile
+
+payment:
+  id: pay_test_001
+  amount: 100
+  asset: USDC
+
+scenarios:
+  - duplicate_webhook
+  - out_of_order_webhook
+  - missing_webhook
+  - invalid_signature
+  - underpayment
+  - overpayment
+  - late_payment
+```
+
+A fixture can use placeholders:
+
+```json
+{
+  "id": "{{eventId}}",
+  "paymentId": "{{paymentId}}",
+  "status": "{{status}}",
+  "amount": "{{amount}}",
+  "actualAmount": "{{actualAmount}}",
+  "asset": "{{asset}}",
+  "eventType": "{{eventType}}"
+}
+```
+
+Available placeholders:
+
+- `{{eventId}}`
+- `{{paymentId}}`
+- `{{status}}`
+- `{{amount}}`
+- `{{actualAmount}}`
+- `{{asset}}`
+- `{{eventType}}`
+
+When a placeholder is the entire JSON string value, numbers remain numbers instead of being converted to strings.
+
+Fixture paths are resolved relative to `stable-ci.yml`.
+
+Custom headers may also contain placeholders:
+
+```yaml
+customProvider:
+  headers:
+    x-payment-id: "{{paymentId}}"
+```
+
+For signed webhooks, `stable-ci` signs the final rendered raw JSON body. The signature header name is configurable, so providers using headers such as `x-switch-signature` can be tested without adding provider-specific code to `stable-ci`.
+
+The target application still exposes the stable-ci test observer endpoints (`reset`, `state`, and optionally `reconcile`). These endpoints are intended for test and CI environments only.
+
 ## Provider support
 
 ### BVNK

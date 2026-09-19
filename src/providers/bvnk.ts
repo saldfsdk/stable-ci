@@ -25,6 +25,7 @@ export function createBvnkProvider(
 ): WebhookProvider {
   return {
     name: 'bvnk',
+    signatureHeader: 'x-signature',
 
     render(event) {
       const eventType =

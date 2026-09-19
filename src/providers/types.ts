@@ -25,5 +25,6 @@ export type RenderedWebhook = {
 
 export type WebhookProvider = {
   name: string
+  signatureHeader?: string
   render: (event: CanonicalWebhookEvent) => RenderedWebhook
 }

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { StableCiConfig } from '../config.js'
 import { createBvnkProvider } from '../providers/bvnk.js'
 import { createGenericProvider } from '../providers/generic.js'
+import { createCustomProvider } from '../providers/custom.js'
 import type { WebhookProvider } from '../providers/types.js'
 import type {
   PaymentAdapter,
@@ -32,6 +33,24 @@ function getProvider(
     return createBvnkProvider(
       config.webhookSecret ?? 'stable-ci-local-secret'
     )
+  }
+
+  if (config.provider === 'custom') {
+    const custom = config.customProvider
+
+    if (!custom) {
+      throw new Error(
+        'Custom provider configuration is missing.',
+      )
+    }
+
+    return createCustomProvider({
+      name: custom.name,
+      fixtures: custom.fixtures,
+      headers: custom.headers,
+      signature: custom.signature,
+      webhookSecret: config.webhookSecret,
+    })
   }
 
   return createGenericProvider()
@@ -106,6 +125,15 @@ async function sendInvalidSignatureWebhook(
     asset: config.payment.asset,
   })
 
+  const signatureHeader =
+    provider.signatureHeader
+
+  if (!signatureHeader) {
+    throw new Error(
+      'invalid_signature requires a provider with a configured signature header.',
+    )
+  }
+
   const response = await fetch(
     config.target.baseUrl +
     config.target.endpoints.webhook,
@@ -113,7 +141,8 @@ async function sendInvalidSignatureWebhook(
       method: 'POST',
       headers: {
         ...rendered.headers,
-        'x-signature': 'invalid-signature',
+        [signatureHeader]:
+          'stable-ci-invalid-signature',
       },
       body: rendered.body,
     }
@@ -204,12 +233,6 @@ export function createConfiguredHttpAdapter(
           break
 
         case 'invalid_signature':
-          if (provider.name !== 'bvnk') {
-            throw new Error(
-              'invalid_signature currently requires the BVNK provider.'
-            )
-          }
-
           webhookAccepted =
             await sendInvalidSignatureWebhook(
               config,
@@ -221,9 +244,9 @@ export function createConfiguredHttpAdapter(
           break
 
         case 'underpayment':
-          if (provider.name !== 'bvnk') {
+          if (config.provider === 'generic') {
             throw new Error(
-              'underpayment currently requires the BVNK provider.'
+              'underpayment requires the BVNK or custom provider.'
             )
           }
 
@@ -241,9 +264,9 @@ export function createConfiguredHttpAdapter(
           break
 
         case 'overpayment':
-          if (provider.name !== 'bvnk') {
+          if (config.provider === 'generic') {
             throw new Error(
-              'overpayment currently requires the BVNK provider.'
+              'overpayment requires the BVNK or custom provider.'
             )
           }
 
@@ -261,9 +284,9 @@ export function createConfiguredHttpAdapter(
           break
 
         case 'late_payment':
-          if (provider.name !== 'bvnk') {
+          if (config.provider === 'generic') {
             throw new Error(
-              'late_payment currently requires the BVNK provider.'
+              'late_payment requires the BVNK or custom provider.'
             )
           }
 
