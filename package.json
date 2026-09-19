@@ -1,5 +1,5 @@
 {
-  "name": "stable-ci-lab",
+  "name": "stable-ci",
   "version": "0.1.0",
   "description": "Reliability CI for stablecoin payment integrations",
   "main": "index.js",
@@ -8,13 +8,21 @@
     "dev": "tsx src/index.ts",
     "test:watch": "vitest",
     "build": "tsc",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "prepublishOnly": "npm run check"
   },
-  "keywords": [],
+  "keywords": [
+    "stablecoin",
+    "payments",
+    "webhook",
+    "reliability",
+    "testing",
+    "ci",
+    "bvnk"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
-  "private": true,
   "bin": {
     "stable-ci": "dist/index.js"
   },
@@ -31,5 +39,19 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saldfsdk/stable-ci.git"
+  },
+  "homepage": "https://github.com/saldfsdk/stable-ci#readme",
+  "bugs": {
+    "url": "https://github.com/saldfsdk/stable-ci/issues"
   }
 }
