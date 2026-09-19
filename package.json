@@ -1,0 +1,35 @@
+{
+  "name": "stable-ci-lab",
+  "version": "0.1.0",
+  "description": "Reliability CI for stablecoin payment integrations",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "dev": "tsx src/index.ts",
+    "test:watch": "vitest",
+    "build": "tsc",
+    "check": "npm test && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "stable-ci": "dist/index.js"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
