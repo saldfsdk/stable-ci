@@ -173,7 +173,7 @@ This repository includes a composite GitHub Action.
 steps:
   - uses: actions/checkout@v7
 
-  - uses: saldfsdk/stable-ci@v0.1.3
+  - uses: saldfsdk/stable-ci@v0.2.0
     with:
       config: stable-ci.yml
       junit: reports/stable-ci.xml
