@@ -1,6 +1,6 @@
 {
   "name": "stable-ci",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Reliability CI for stablecoin payment integrations",
   "scripts": {
     "test": "vitest run",
