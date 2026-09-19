@@ -1,5 +1,8 @@
+provider: bvnk
+webhookSecret: stable-ci-local-secret
+
 target:
-  name: local-payment-app
+  name: local-bvnk-payment-app
   baseUrl: http://127.0.0.1:4310
   endpoints:
     reset: /reset

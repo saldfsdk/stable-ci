@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import type { StableCiConfig } from '../config.js'
+import { createBvnkProvider } from '../providers/bvnk.js'
+import { createGenericProvider } from '../providers/generic.js'
+import type { WebhookProvider } from '../providers/types.js'
 import type {
   PaymentAdapter,
   PaymentObservation,
@@ -21,7 +24,19 @@ const stateSchema = z.object({
   recovered: z.boolean().default(false),
 })
 
-async function post(
+function getProvider(
+  config: StableCiConfig,
+): WebhookProvider {
+  if (config.provider === 'bvnk') {
+    return createBvnkProvider(
+      config.webhookSecret ?? 'stable-ci-local-secret'
+    )
+  }
+
+  return createGenericProvider()
+}
+
+async function postJson(
   baseUrl: string,
   path: string,
   body: Record<string, unknown> = {},
@@ -37,6 +52,37 @@ async function post(
   if (!response.ok) {
     throw new Error(
       'HTTP ' + response.status + ' from ' + path
+    )
+  }
+}
+
+async function sendWebhook(
+  config: StableCiConfig,
+  provider: WebhookProvider,
+  eventId: string,
+  status: 'pending' | 'completed' | 'failed',
+) {
+  const rendered = provider.render({
+    eventId,
+    paymentId: config.payment.id,
+    status,
+    amount: config.payment.amount,
+    asset: config.payment.asset,
+  })
+
+  const response = await fetch(
+    config.target.baseUrl +
+    config.target.endpoints.webhook,
+    {
+      method: 'POST',
+      headers: rendered.headers,
+      body: rendered.body,
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Webhook returned HTTP ' + response.status
     )
   }
 }
@@ -61,8 +107,10 @@ async function getState(
 export function createConfiguredHttpAdapter(
   config: StableCiConfig,
 ): PaymentAdapter {
+  const provider = getProvider(config)
+
   return {
-    name: config.target.name,
+    name: config.target.name + ' [' + provider.name + ']',
 
     async runScenario(
       scenario: ScenarioName,
@@ -71,35 +119,42 @@ export function createConfiguredHttpAdapter(
       const endpoints = config.target.endpoints
       const payment = config.payment
 
-      await post(baseUrl, endpoints.reset)
-
-      const webhook = async (
-        eventId: string,
-        status: 'pending' | 'completed' | 'failed',
-      ) => {
-        await post(baseUrl, endpoints.webhook, {
-          eventId,
-          paymentId: payment.id,
-          status,
-          amount: payment.amount,
-          asset: payment.asset,
-        })
-      }
+      await postJson(baseUrl, endpoints.reset)
 
       switch (scenario) {
         case 'duplicate_webhook':
-          await webhook('evt_complete_1', 'completed')
-          await webhook('evt_complete_1', 'completed')
+          await sendWebhook(
+            config,
+            provider,
+            'evt_complete_1',
+            'completed',
+          )
+          await sendWebhook(
+            config,
+            provider,
+            'evt_complete_1',
+            'completed',
+          )
           break
 
         case 'out_of_order_webhook':
-          await webhook('evt_complete_1', 'completed')
-          await webhook('evt_pending_2', 'pending')
+          await sendWebhook(
+            config,
+            provider,
+            'evt_complete_1',
+            'completed',
+          )
+          await sendWebhook(
+            config,
+            provider,
+            'evt_pending_2',
+            'pending',
+          )
           break
 
         case 'missing_webhook':
           if (endpoints.reconcile) {
-            await post(baseUrl, endpoints.reconcile, {
+            await postJson(baseUrl, endpoints.reconcile, {
               paymentId: payment.id,
               chainStatus: 'confirmed',
               amount: payment.amount,

@@ -10,6 +10,8 @@ const scenarioSchema = z.enum([
 ])
 
 const configSchema = z.object({
+  provider: z.enum(['generic', 'bvnk']).default('generic'),
+  webhookSecret: z.string().min(1).optional(),
   target: z.object({
     name: z.string().min(1),
     baseUrl: z.string().url(),
@@ -29,6 +31,8 @@ const configSchema = z.object({
 })
 
 export type StableCiConfig = {
+  provider: 'generic' | 'bvnk'
+  webhookSecret?: string
   target: {
     name: string
     baseUrl: string

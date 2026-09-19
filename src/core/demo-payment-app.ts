@@ -88,12 +88,50 @@ export async function startDemoPaymentApp(
       if (req.method === 'POST' && url.pathname === '/webhook') {
         const body = await readJson(req)
 
-        const eventId = String(body.eventId ?? '')
-        const paymentId = String(body.paymentId ?? '')
-        const status = String(
-          body.status ?? 'pending'
-        ) as ApplicationStatus
-        const amount = Number(body.amount ?? 0)
+        const data =
+          typeof body.data === 'object' &&
+          body.data !== null
+            ? body.data as Record<string, unknown>
+            : undefined
+
+        const displayCurrency =
+          data &&
+          typeof data.displayCurrency === 'object' &&
+          data.displayCurrency !== null
+            ? data.displayCurrency as Record<string, unknown>
+            : undefined
+
+        const isBvnk =
+          body.source === 'payment' &&
+          body.event === 'statusChanged' &&
+          data !== undefined
+
+        const rawStatus = isBvnk
+          ? String(data.status ?? '')
+          : String(body.status ?? 'pending')
+
+        const status: ApplicationStatus =
+          rawStatus === 'COMPLETE'
+            ? 'completed'
+            : rawStatus === 'PROCESSING'
+              ? 'pending'
+              : rawStatus === 'EXPIRED'
+                ? 'failed'
+                : rawStatus as ApplicationStatus
+
+        const paymentId = isBvnk
+          ? String(data.uuid ?? '')
+          : String(body.paymentId ?? '')
+
+        const eventId = isBvnk
+          ? String(data.reference ?? '') +
+            ':' +
+            rawStatus
+          : String(body.eventId ?? '')
+
+        const amount = isBvnk
+          ? Number(displayCurrency?.amount ?? 0)
+          : Number(body.amount ?? 0)
 
         state.paymentId = paymentId
         state.webhookDeliveries += 1
