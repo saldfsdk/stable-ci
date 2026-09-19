@@ -1,0 +1,18 @@
+target:
+  name: local-payment-app
+  baseUrl: http://127.0.0.1:4310
+  endpoints:
+    reset: /reset
+    webhook: /webhook
+    state: /state
+    reconcile: /reconcile
+
+payment:
+  id: pay_stable_ci_001
+  amount: 100
+  asset: USDC
+
+scenarios:
+  - duplicate_webhook
+  - out_of_order_webhook
+  - missing_webhook

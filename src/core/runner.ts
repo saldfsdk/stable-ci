@@ -4,10 +4,11 @@ import type { PaymentAdapter, ScenarioResult } from '../types.js'
 
 export async function runSuite(
   adapter: PaymentAdapter,
+  selectedScenarios = scenarios,
 ): Promise<ScenarioResult[]> {
   const results: ScenarioResult[] = []
 
-  for (const scenario of scenarios) {
+  for (const scenario of selectedScenarios) {
     const observation = await adapter.runScenario(scenario.name)
     const invariantResults = evaluateInvariants(observation)
 

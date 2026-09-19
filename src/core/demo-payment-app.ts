@@ -62,6 +62,7 @@ function sendJson(
 
 export async function startDemoPaymentApp(
   profile: HttpDemoProfile,
+  port = 0,
 ) {
   let state = initialState()
 
@@ -206,7 +207,7 @@ export async function startDemoPaymentApp(
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
-    server.listen(0, '127.0.0.1', resolve)
+    server.listen(port, '127.0.0.1', resolve)
   })
 
   const address = server.address() as AddressInfo

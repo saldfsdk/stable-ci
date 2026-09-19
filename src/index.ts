@@ -2,6 +2,9 @@
 import { Command } from 'commander'
 import { createDemoAdapter } from './adapters/demo.js'
 import { createHttpDemoAdapter } from './adapters/http-demo.js'
+import { createConfiguredHttpAdapter } from './adapters/configured-http.js'
+import { startDemoPaymentApp } from './core/demo-payment-app.js'
+import { loadConfig } from './config.js'
 import { runSuite } from './core/runner.js'
 import { scenarios } from './scenarios/builtins.js'
 import type { ScenarioResult } from './types.js'
@@ -116,4 +119,106 @@ program
     }
   })
 
+
+program
+  .command('demo-server')
+  .description('Run the local demo payment application')
+  .option('--profile <profile>', 'Demo profile: safe or unsafe', 'safe')
+  .option('--port <port>', 'Port', '4310')
+  .action(async (options) => {
+    if (options.profile !== 'safe' && options.profile !== 'unsafe') {
+      console.error('Profile must be safe or unsafe.')
+      process.exitCode = 2
+      return
+    }
+
+    const port = Number(options.port)
+
+    if (!Number.isInteger(port) || port <= 0) {
+      console.error('Port must be a positive integer.')
+      process.exitCode = 2
+      return
+    }
+
+    const app = await startDemoPaymentApp(
+      options.profile,
+      port,
+    )
+
+    console.log(
+      'Demo payment app running at ' + app.baseUrl
+    )
+    console.log(
+      'Profile: ' + options.profile
+    )
+    console.log('Press Ctrl+C to stop.')
+
+    await new Promise<void>((resolve) => {
+      let closing = false
+
+      const shutdown = async () => {
+        if (closing) {
+          return
+        }
+
+        closing = true
+        await app.close()
+        resolve()
+      }
+
+      process.once('SIGINT', () => {
+        void shutdown()
+      })
+
+      process.once('SIGTERM', () => {
+        void shutdown()
+      })
+    })
+  })
+
+program
+  .command('run')
+  .description('Run stable-ci against a configured payment application')
+  .option(
+    '-c, --config <path>',
+    'Path to stable-ci config',
+    'stable-ci.yml',
+  )
+  .option('--json', 'Output JSON')
+  .action(async (options) => {
+    try {
+      const config = loadConfig(options.config)
+      const adapter = createConfiguredHttpAdapter(config)
+
+      const selectedScenarios = scenarios.filter(
+        (scenario) =>
+          config.scenarios.includes(scenario.name)
+      )
+
+      const results = await runSuite(
+        adapter,
+        selectedScenarios,
+      )
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          adapter: adapter.name,
+          results,
+        }, null, 2))
+      } else {
+        printResults(adapter.name, results)
+      }
+
+      if (results.some((result) => !result.passed)) {
+        process.exitCode = 1
+      }
+    } catch (error) {
+      console.error(
+        error instanceof Error
+          ? error.message
+          : 'Unknown stable-ci error.'
+      )
+      process.exitCode = 2
+    }
+  })
 program.parseAsync()
