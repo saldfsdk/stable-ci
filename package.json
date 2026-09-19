@@ -1,8 +1,7 @@
 {
   "name": "stable-ci",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reliability CI for stablecoin payment integrations",
-  "main": "index.js",
   "scripts": {
     "test": "vitest run",
     "dev": "tsx src/index.ts",
