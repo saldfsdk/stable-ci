@@ -31,3 +31,49 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  action-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start safe demo application
+        shell: bash
+        run: |
+          node dist/index.js demo-server \
+            --profile safe \
+            --port 4310 > /tmp/stable-ci-demo.log 2>&1 &
+          echo $! > /tmp/stable-ci-demo.pid
+          sleep 1
+
+      - name: Run stable-ci action
+        uses: ./
+        with:
+          config: stable-ci.yml
+          junit: reports/stable-ci.xml
+
+      - name: Show JUnit report
+        if: always()
+        run: cat reports/stable-ci.xml
+
+      - name: Stop demo application
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/stable-ci-demo.pid ]; then
+            kill "$(cat /tmp/stable-ci-demo.pid)" || true
+          fi
