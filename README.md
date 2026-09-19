@@ -129,6 +129,16 @@ PASS  late_payment
 
 A failed scenario causes a non-zero exit code, so it can fail CI.
 
+## Working example
+
+A complete external integration example is available here:
+
+https://github.com/saldfsdk/stable-ci-example
+
+The example repository installs `stable-ci` from npm, starts a test payment application, and runs `saldfsdk/stable-ci@v0.1.3` as a GitHub Action from a separate repository.
+
+Its CI verifies the full external integration path and produces a JUnit report.
+
 ## Expected outcomes
 
 Different applications may intentionally handle payment exceptions differently.
@@ -161,9 +171,9 @@ This repository includes a composite GitHub Action.
 
 ```yaml
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v7
 
-  - uses: saldfsdk/stable-ci@v0.1.1
+  - uses: saldfsdk/stable-ci@v0.1.3
     with:
       config: stable-ci.yml
       junit: reports/stable-ci.xml
