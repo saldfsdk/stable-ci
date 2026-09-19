@@ -13,7 +13,10 @@ export const invariants: Invariant[] = [
     name: 'payment_posts_exactly_once',
     check: (o) => {
       if (o.chainStatus !== 'confirmed') {
-        return { name: 'payment_posts_exactly_once', passed: true }
+        return {
+          name: 'payment_posts_exactly_once',
+          passed: true,
+        }
       }
 
       const passed = o.ledgerEntries === 1
@@ -32,16 +35,23 @@ export const invariants: Invariant[] = [
     check: (o) => {
       const definitelyFailed =
         o.chainStatus === 'reverted' ||
-        (o.providerStatus === 'failed' && o.chainStatus !== 'confirmed')
+        (
+          o.providerStatus === 'failed' &&
+          o.chainStatus !== 'confirmed'
+        )
 
-      const passed = !definitelyFailed || moneyEqual(o.creditedAmount, 0)
+      const passed =
+        !definitelyFailed ||
+        moneyEqual(o.creditedAmount, 0)
 
       return {
         name: 'failed_payment_never_credits_balance',
         passed,
         message: passed
           ? undefined
-          : 'Failed payment credited USD ' + o.creditedAmount.toFixed(2) + '.'
+          : 'Failed payment credited USD ' +
+            o.creditedAmount.toFixed(2) +
+            '.'
       }
     },
   },
@@ -57,7 +67,9 @@ export const invariants: Invariant[] = [
         passed,
         message: passed
           ? undefined
-          : 'Observed ' + o.retryAttempts + ' retry attempt(s) after settlement became unknown.'
+          : 'Observed ' +
+            o.retryAttempts +
+            ' retry attempt(s) after settlement became unknown.'
       }
     },
   },
@@ -82,14 +94,21 @@ export const invariants: Invariant[] = [
     check: (o) => {
       const passed =
         o.chainStatus !== 'confirmed' ||
-        moneyEqual(o.creditedAmount, o.expectedAmount)
+        moneyEqual(
+          o.creditedAmount,
+          o.expectedAmount,
+        )
 
       return {
         name: 'ledger_delta_equals_settlement_amount',
         passed,
         message: passed
           ? undefined
-          : 'Expected USD ' + o.expectedAmount.toFixed(2) + ', ledger credited USD ' + o.creditedAmount.toFixed(2) + '.'
+          : 'Expected USD ' +
+            o.expectedAmount.toFixed(2) +
+            ', ledger credited USD ' +
+            o.creditedAmount.toFixed(2) +
+            '.'
       }
     },
   },
@@ -105,7 +124,9 @@ export const invariants: Invariant[] = [
         passed,
         message: passed
           ? undefined
-          : 'Chain confirmed but application ended in ' + o.applicationStatus + ' state.'
+          : 'Chain confirmed but application ended in ' +
+            o.applicationStatus +
+            ' state.'
       }
     },
   },
@@ -121,7 +142,34 @@ export const invariants: Invariant[] = [
         passed,
         message: passed
           ? undefined
-          : o.webhookDeliveries + ' webhook deliveries created ' + o.ledgerEntries + ' ledger entries.'
+          : o.webhookDeliveries +
+            ' webhook deliveries created ' +
+            o.ledgerEntries +
+            ' ledger entries.'
+      }
+    },
+  },
+  {
+    name: 'invalid_signature_must_be_rejected',
+    check: (o) => {
+      if (o.scenario !== 'invalid_signature') {
+        return {
+          name: 'invalid_signature_must_be_rejected',
+          passed: true,
+        }
+      }
+
+      const passed =
+        o.webhookAccepted === false &&
+        o.ledgerEntries === 0 &&
+        moneyEqual(o.creditedAmount, 0)
+
+      return {
+        name: 'invalid_signature_must_be_rejected',
+        passed,
+        message: passed
+          ? undefined
+          : 'Invalidly signed webhook was accepted or changed financial state.'
       }
     },
   },

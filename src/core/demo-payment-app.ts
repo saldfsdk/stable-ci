@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { createHmac } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
 import type { ApplicationStatus } from '../types.js'
 
@@ -48,6 +49,27 @@ async function readJson(
   return JSON.parse(raw) as Record<string, unknown>
 }
 
+async function readRawJson(
+  req: IncomingMessage,
+): Promise<{
+  raw: string
+  body: Record<string, unknown>
+}> {
+  const chunks: Buffer[] = []
+
+  for await (const chunk of req) {
+    chunks.push(Buffer.from(chunk))
+  }
+
+  const raw = Buffer.concat(chunks).toString('utf8')
+
+  return {
+    raw,
+    body: raw
+      ? JSON.parse(raw) as Record<string, unknown>
+      : {},
+  }
+}
 function sendJson(
   res: ServerResponse,
   status: number,
@@ -86,7 +108,7 @@ export async function startDemoPaymentApp(
       }
 
       if (req.method === 'POST' && url.pathname === '/webhook') {
-        const body = await readJson(req)
+        const { body, raw } = await readRawJson(req)
 
         const data =
           typeof body.data === 'object' &&
@@ -105,6 +127,26 @@ export async function startDemoPaymentApp(
           body.source === 'payment' &&
           body.event === 'statusChanged' &&
           data !== undefined
+
+        if (profile === 'safe' && isBvnk) {
+          const suppliedSignature = String(
+            req.headers['x-signature'] ?? ''
+          )
+
+          const expectedSignature = createHmac(
+            'sha256',
+            'stable-ci-local-secret',
+          )
+            .update(raw, 'utf8')
+            .digest('base64')
+
+          if (suppliedSignature !== expectedSignature) {
+            sendJson(res, 401, {
+              error: 'Invalid BVNK webhook signature',
+            })
+            return
+          }
+        }
 
         const rawStatus = isBvnk
           ? String(data.status ?? '')
@@ -181,7 +223,7 @@ export async function startDemoPaymentApp(
       }
 
       if (req.method === 'POST' && url.pathname === '/retry') {
-        const body = await readJson(req)
+        const { body, raw } = await readRawJson(req)
         const amount = Number(body.amount ?? 0)
 
         if (
@@ -207,7 +249,7 @@ export async function startDemoPaymentApp(
       }
 
       if (req.method === 'POST' && url.pathname === '/reconcile') {
-        const body = await readJson(req)
+        const { body, raw } = await readRawJson(req)
         const chainStatus = String(body.chainStatus ?? '')
         const amount = Number(body.amount ?? 0)
 

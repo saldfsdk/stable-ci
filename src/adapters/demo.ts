@@ -48,6 +48,18 @@ function safeObservation(
         settlementWasUnknown: true,
         recovered: true,
       }
+
+    case 'invalid_signature':
+      return {
+        ...o,
+        providerStatus: 'failed',
+        chainStatus: 'not_broadcast',
+        applicationStatus: 'none',
+        webhookDeliveries: 0,
+        ledgerEntries: 0,
+        creditedAmount: 0,
+        webhookAccepted: false,
+      }
   }
 }
 
@@ -80,6 +92,18 @@ function unsafeObservation(
         retryAttempts: 1,
         ledgerEntries: 2,
         creditedAmount: 200,
+      }
+
+    case 'invalid_signature':
+      return {
+        ...safe,
+        providerStatus: 'failed',
+        chainStatus: 'not_broadcast',
+        applicationStatus: 'completed',
+        webhookDeliveries: 1,
+        ledgerEntries: 1,
+        creditedAmount: 100,
+        webhookAccepted: true,
       }
   }
 }

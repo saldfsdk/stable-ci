@@ -31,4 +31,8 @@ export const scenarios: ScenarioDefinition[] = [
     description: 'A retry is requested while the original settlement outcome is still unknown.',
     risk: 'Double payment or duplicate payout',
   },
-]
+  {
+    name: 'invalid_signature',
+    description: 'A webhook is delivered with an invalid provider signature.',
+    risk: 'Forged payment events may be accepted and credited',
+  },]

@@ -63,6 +63,7 @@ export function createHttpDemoAdapter(
 
       let providerStatus: ProviderStatus = 'completed'
       let chainStatus: ChainStatus = 'confirmed'
+      let webhookAccepted: boolean | undefined
 
       const webhook = async (
         eventId: string,
@@ -142,6 +143,48 @@ export function createHttpDemoAdapter(
               amount,
             })
             break
+
+          case 'invalid_signature': {
+            providerStatus = 'failed'
+            chainStatus = 'not_broadcast'
+
+            const payload = JSON.stringify({
+              source: 'payment',
+              event: 'statusChanged',
+              data: {
+                uuid: paymentId,
+                reference: 'evt_invalid_signature',
+                type: 'IN',
+                subType: 'merchantPayIn',
+                status: 'COMPLETE',
+                displayCurrency: {
+                  currency: 'USDC',
+                  amount,
+                  actual: amount,
+                },
+                paidCurrency: {
+                  currency: 'USDC',
+                  amount,
+                  actual: amount,
+                },
+              },
+            })
+
+            const response = await fetch(
+              app.baseUrl + '/webhook',
+              {
+                method: 'POST',
+                headers: {
+                  'content-type': 'application/json',
+                  'x-signature': 'invalid-signature',
+                },
+                body: payload,
+              }
+            )
+
+            webhookAccepted = response.ok
+            break
+          }
         }
 
         const state = await getState(app.baseUrl)
@@ -159,6 +202,7 @@ export function createHttpDemoAdapter(
           retryAttempts: state.retryAttempts,
           settlementWasUnknown: state.settlementWasUnknown,
           recovered: state.recovered,
+          webhookAccepted,
         }
       } finally {
         await app.close()

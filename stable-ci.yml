@@ -19,3 +19,4 @@ scenarios:
   - duplicate_webhook
   - out_of_order_webhook
   - missing_webhook
+  - invalid_signature

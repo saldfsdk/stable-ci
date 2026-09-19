@@ -85,8 +85,37 @@ async function sendWebhook(
       'Webhook returned HTTP ' + response.status
     )
   }
+
+  return response.status
 }
 
+async function sendInvalidSignatureWebhook(
+  config: StableCiConfig,
+  provider: WebhookProvider,
+): Promise<boolean> {
+  const rendered = provider.render({
+    eventId: 'evt_invalid_signature',
+    paymentId: config.payment.id,
+    status: 'completed',
+    amount: config.payment.amount,
+    asset: config.payment.asset,
+  })
+
+  const response = await fetch(
+    config.target.baseUrl +
+    config.target.endpoints.webhook,
+    {
+      method: 'POST',
+      headers: {
+        ...rendered.headers,
+        'x-signature': 'invalid-signature',
+      },
+      body: rendered.body,
+    }
+  )
+
+  return response.ok
+}
 async function getState(
   config: StableCiConfig,
 ) {
@@ -120,6 +149,10 @@ export function createConfiguredHttpAdapter(
       const payment = config.payment
 
       await postJson(baseUrl, endpoints.reset)
+
+      let providerStatus: PaymentObservation['providerStatus'] = 'completed'
+      let chainStatus: PaymentObservation['chainStatus'] = 'confirmed'
+      let webhookAccepted: boolean | undefined
 
       switch (scenario) {
         case 'duplicate_webhook':
@@ -163,6 +196,23 @@ export function createConfiguredHttpAdapter(
           }
           break
 
+        case 'invalid_signature':
+          if (provider.name !== 'bvnk') {
+            throw new Error(
+              'invalid_signature currently requires the BVNK provider.'
+            )
+          }
+
+          webhookAccepted =
+            await sendInvalidSignatureWebhook(
+              config,
+              provider,
+            )
+
+          providerStatus = 'failed'
+          chainStatus = 'not_broadcast'
+          break
+
         default:
           throw new Error(
             'Scenario is not supported by the configured HTTP adapter yet: ' +
@@ -176,8 +226,8 @@ export function createConfiguredHttpAdapter(
         scenario,
         paymentId: payment.id,
         expectedAmount: payment.amount,
-        providerStatus: 'completed',
-        chainStatus: 'confirmed',
+        providerStatus,
+        chainStatus,
         webhookDeliveries: state.webhookDeliveries,
         ledgerEntries: state.ledgerEntries,
         creditedAmount: state.creditedAmount,
@@ -185,6 +235,7 @@ export function createConfiguredHttpAdapter(
         retryAttempts: state.retryAttempts,
         settlementWasUnknown: state.settlementWasUnknown,
         recovered: state.recovered,
+        webhookAccepted,
       }
     },
   }

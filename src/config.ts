@@ -7,6 +7,7 @@ const scenarioSchema = z.enum([
   'duplicate_webhook',
   'out_of_order_webhook',
   'missing_webhook',
+  'invalid_signature',
 ])
 
 const configSchema = z.object({

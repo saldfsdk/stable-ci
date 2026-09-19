@@ -5,6 +5,7 @@ export type ScenarioName =
   | 'provider_timeout_after_broadcast'
   | 'late_chain_confirmation'
   | 'retry_after_unknown_settlement'
+  | 'invalid_signature'
 
 export type ProviderStatus =
   | 'pending'
@@ -33,6 +34,7 @@ export type PaymentObservation = {
   retryAttempts: number
   settlementWasUnknown: boolean
   recovered: boolean
+  webhookAccepted?: boolean
 }
 
 export type ScenarioDefinition = {
