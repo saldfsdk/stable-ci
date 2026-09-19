@@ -10,7 +10,10 @@ export async function runSuite(
 
   for (const scenario of selectedScenarios) {
     const observation = await adapter.runScenario(scenario.name)
-    const invariantResults = evaluateInvariants(observation)
+    const invariantResults = evaluateInvariants(
+      observation,
+      scenario.expected,
+    )
 
     results.push({
       scenario,

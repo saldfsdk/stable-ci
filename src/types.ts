@@ -6,12 +6,14 @@ export type ScenarioName =
   | 'late_chain_confirmation'
   | 'retry_after_unknown_settlement'
   | 'invalid_signature'
+  | 'underpayment'
 
 export type ProviderStatus =
   | 'pending'
   | 'completed'
   | 'failed'
   | 'timeout'
+  | 'underpaid'
 
 export type ChainStatus =
   | 'not_broadcast'
@@ -19,12 +21,32 @@ export type ChainStatus =
   | 'confirmed'
   | 'reverted'
 
-export type ApplicationStatus = 'none' | 'pending' | 'completed' | 'failed'
+export type ApplicationStatus =
+  | 'none'
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'manual_review'
+
+export type CreditExpectation =
+  | 'exact_expected'
+  | 'none'
+  | 'received_amount'
+  | 'any'
+
+export type ExpectedOutcome = {
+  applicationStatus?: ApplicationStatus | ApplicationStatus[]
+  ledgerEntries?: number
+  credit?: CreditExpectation
+  retryAttempts?: number
+  webhookAccepted?: boolean
+}
 
 export type PaymentObservation = {
   scenario: ScenarioName
   paymentId: string
   expectedAmount: number
+  receivedAmount?: number
   providerStatus: ProviderStatus
   chainStatus: ChainStatus
   webhookDeliveries: number
@@ -41,6 +63,7 @@ export type ScenarioDefinition = {
   name: ScenarioName
   description: string
   risk: string
+  expected: ExpectedOutcome
 }
 
 export type InvariantResult = {

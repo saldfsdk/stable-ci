@@ -30,13 +30,23 @@ function safeObservation(
 
   switch (scenario) {
     case 'duplicate_webhook':
-      return { ...o, webhookDeliveries: 2 }
+      return {
+        ...o,
+        webhookDeliveries: 2,
+      }
 
     case 'out_of_order_webhook':
-      return { ...o, webhookDeliveries: 3 }
+      return {
+        ...o,
+        webhookDeliveries: 3,
+      }
 
     case 'missing_webhook':
-      return { ...o, webhookDeliveries: 0, recovered: true }
+      return {
+        ...o,
+        webhookDeliveries: 0,
+        recovered: true,
+      }
 
     case 'provider_timeout_after_broadcast':
     case 'late_chain_confirmation':
@@ -60,6 +70,16 @@ function safeObservation(
         creditedAmount: 0,
         webhookAccepted: false,
       }
+
+    case 'underpayment':
+      return {
+        ...o,
+        providerStatus: 'underpaid',
+        receivedAmount: 60,
+        applicationStatus: 'manual_review',
+        ledgerEntries: 0,
+        creditedAmount: 0,
+      }
   }
 }
 
@@ -77,9 +97,15 @@ function unsafeObservation(
       }
 
     case 'out_of_order_webhook':
+      return {
+        ...safe,
+        applicationStatus: 'pending',
+      }
+
     case 'missing_webhook':
       return {
         ...safe,
+        applicationStatus: 'none',
         ledgerEntries: 0,
         creditedAmount: 0,
       }
@@ -97,13 +123,19 @@ function unsafeObservation(
     case 'invalid_signature':
       return {
         ...safe,
-        providerStatus: 'failed',
-        chainStatus: 'not_broadcast',
         applicationStatus: 'completed',
         webhookDeliveries: 1,
         ledgerEntries: 1,
         creditedAmount: 100,
         webhookAccepted: true,
+      }
+
+    case 'underpayment':
+      return {
+        ...safe,
+        applicationStatus: 'completed',
+        ledgerEntries: 1,
+        creditedAmount: 100,
       }
   }
 }

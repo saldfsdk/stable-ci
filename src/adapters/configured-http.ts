@@ -15,6 +15,7 @@ const stateSchema = z.object({
     'pending',
     'completed',
     'failed',
+    'manual_review',
   ]),
   webhookDeliveries: z.number(),
   ledgerEntries: z.number(),
@@ -60,7 +61,8 @@ async function sendWebhook(
   config: StableCiConfig,
   provider: WebhookProvider,
   eventId: string,
-  status: 'pending' | 'completed' | 'failed',
+  status: 'pending' | 'completed' | 'failed' | 'underpaid',
+  actualAmount?: number,
 ) {
   const rendered = provider.render({
     eventId,
@@ -68,6 +70,7 @@ async function sendWebhook(
     status,
     amount: config.payment.amount,
     asset: config.payment.asset,
+    actualAmount,
   })
 
   const response = await fetch(
@@ -116,6 +119,7 @@ async function sendInvalidSignatureWebhook(
 
   return response.ok
 }
+
 async function getState(
   config: StableCiConfig,
 ) {
@@ -153,6 +157,7 @@ export function createConfiguredHttpAdapter(
       let providerStatus: PaymentObservation['providerStatus'] = 'completed'
       let chainStatus: PaymentObservation['chainStatus'] = 'confirmed'
       let webhookAccepted: boolean | undefined
+      let receivedAmount: number | undefined
 
       switch (scenario) {
         case 'duplicate_webhook':
@@ -213,6 +218,25 @@ export function createConfiguredHttpAdapter(
           chainStatus = 'not_broadcast'
           break
 
+        case 'underpayment':
+          if (provider.name !== 'bvnk') {
+            throw new Error(
+              'underpayment currently requires the BVNK provider.'
+            )
+          }
+
+          receivedAmount = payment.amount * 0.6
+          providerStatus = 'underpaid'
+
+          await sendWebhook(
+            config,
+            provider,
+            'evt_underpayment_1',
+            'underpaid',
+            receivedAmount,
+          )
+          break
+
         default:
           throw new Error(
             'Scenario is not supported by the configured HTTP adapter yet: ' +
@@ -226,6 +250,7 @@ export function createConfiguredHttpAdapter(
         scenario,
         paymentId: payment.id,
         expectedAmount: payment.amount,
+        receivedAmount,
         providerStatus,
         chainStatus,
         webhookDeliveries: state.webhookDeliveries,

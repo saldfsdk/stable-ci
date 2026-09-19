@@ -3,6 +3,7 @@ import {
   type DemoPaymentState,
   type HttpDemoProfile,
 } from '../core/demo-payment-app.js'
+import { createBvnkProvider } from '../providers/bvnk.js'
 import type {
   ChainStatus,
   PaymentAdapter,
@@ -144,6 +145,40 @@ export function createHttpDemoAdapter(
             })
             break
 
+          case 'underpayment': {
+            providerStatus = 'underpaid'
+
+            const provider = createBvnkProvider(
+              'stable-ci-local-secret'
+            )
+
+            const rendered = provider.render({
+              eventId: 'evt_underpayment_1',
+              paymentId,
+              status: 'underpaid',
+              amount,
+              actualAmount: 60,
+              asset: 'USDC',
+            })
+
+            const response = await fetch(
+              app.baseUrl + '/webhook',
+              {
+                method: 'POST',
+                headers: rendered.headers,
+                body: rendered.body,
+              }
+            )
+
+            if (!response.ok) {
+              throw new Error(
+                'Underpayment webhook returned HTTP ' +
+                response.status
+              )
+            }
+
+            break
+          }
           case 'invalid_signature': {
             providerStatus = 'failed'
             chainStatus = 'not_broadcast'
@@ -193,6 +228,7 @@ export function createHttpDemoAdapter(
           scenario,
           paymentId,
           expectedAmount: amount,
+          receivedAmount: scenario === 'underpayment' ? 60 : undefined,
           providerStatus,
           chainStatus,
           webhookDeliveries: state.webhookDeliveries,

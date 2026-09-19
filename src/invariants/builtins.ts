@@ -1,184 +1,187 @@
-import type { InvariantResult, PaymentObservation } from '../types.js'
-
-type Invariant = {
-  name: string
-  check: (observation: PaymentObservation) => InvariantResult
-}
+import type {
+  ExpectedOutcome,
+  InvariantResult,
+  PaymentObservation,
+} from '../types.js'
 
 const moneyEqual = (a: number, b: number) =>
   Math.abs(a - b) < 0.005
 
-export const invariants: Invariant[] = [
-  {
-    name: 'payment_posts_exactly_once',
-    check: (o) => {
-      if (o.chainStatus !== 'confirmed') {
-        return {
-          name: 'payment_posts_exactly_once',
-          passed: true,
-        }
-      }
+function expectedStatuses(
+  expected: ExpectedOutcome,
+) {
+  if (expected.applicationStatus === undefined) {
+    return undefined
+  }
 
-      const passed = o.ledgerEntries === 1
+  return Array.isArray(expected.applicationStatus)
+    ? expected.applicationStatus
+    : [expected.applicationStatus]
+}
 
-      return {
-        name: 'payment_posts_exactly_once',
-        passed,
-        message: passed
-          ? undefined
-          : 'Expected 1 ledger entry, observed ' + o.ledgerEntries + '.'
-      }
-    },
-  },
-  {
-    name: 'failed_payment_never_credits_balance',
-    check: (o) => {
-      const definitelyFailed =
-        o.chainStatus === 'reverted' ||
-        (
-          o.providerStatus === 'failed' &&
-          o.chainStatus !== 'confirmed'
-        )
+export function evaluateInvariants(
+  o: PaymentObservation,
+  expected: ExpectedOutcome,
+): InvariantResult[] {
+  const results: InvariantResult[] = []
 
-      const passed =
-        !definitelyFailed ||
-        moneyEqual(o.creditedAmount, 0)
+  if (expected.ledgerEntries !== undefined) {
+    const passed =
+      o.ledgerEntries === expected.ledgerEntries
 
-      return {
-        name: 'failed_payment_never_credits_balance',
-        passed,
-        message: passed
-          ? undefined
-          : 'Failed payment credited USD ' +
-            o.creditedAmount.toFixed(2) +
-            '.'
-      }
-    },
-  },
-  {
-    name: 'unknown_settlement_must_not_be_retried',
-    check: (o) => {
-      const passed =
-        !o.settlementWasUnknown ||
-        o.retryAttempts === 0
+    results.push({
+      name: expected.ledgerEntries === 1
+        ? 'payment_posts_exactly_once'
+        : 'expected_ledger_entries',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected ' +
+          expected.ledgerEntries +
+          ' ledger entry/entries, observed ' +
+          o.ledgerEntries +
+          '.'
+    })
+  }
 
-      return {
-        name: 'unknown_settlement_must_not_be_retried',
-        passed,
-        message: passed
-          ? undefined
-          : 'Observed ' +
-            o.retryAttempts +
-            ' retry attempt(s) after settlement became unknown.'
-      }
-    },
-  },
-  {
-    name: 'confirmed_payment_requires_ledger_entry',
-    check: (o) => {
-      const passed =
-        o.chainStatus !== 'confirmed' ||
-        o.ledgerEntries === 1
+  if (expected.credit === 'exact_expected') {
+    const passed = moneyEqual(
+      o.creditedAmount,
+      o.expectedAmount,
+    )
 
-      return {
-        name: 'confirmed_payment_requires_ledger_entry',
-        passed,
-        message: passed
-          ? undefined
-          : 'Confirmed onchain payment did not converge to exactly one ledger entry.'
-      }
-    },
-  },
-  {
-    name: 'ledger_delta_equals_settlement_amount',
-    check: (o) => {
-      const passed =
-        o.chainStatus !== 'confirmed' ||
-        moneyEqual(
-          o.creditedAmount,
-          o.expectedAmount,
-        )
+    results.push({
+      name: 'ledger_delta_equals_settlement_amount',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected USD ' +
+          o.expectedAmount.toFixed(2) +
+          ', ledger credited USD ' +
+          o.creditedAmount.toFixed(2) +
+          '.'
+    })
+  }
 
-      return {
-        name: 'ledger_delta_equals_settlement_amount',
-        passed,
-        message: passed
-          ? undefined
-          : 'Expected USD ' +
-            o.expectedAmount.toFixed(2) +
+  if (expected.credit === 'none') {
+    const passed = moneyEqual(o.creditedAmount, 0)
+
+    results.push({
+      name: 'failed_payment_never_credits_balance',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected no credit, but USD ' +
+          o.creditedAmount.toFixed(2) +
+          ' was credited.'
+    })
+  }
+
+  if (expected.credit === 'received_amount') {
+    const hasReceivedAmount =
+      o.receivedAmount !== undefined
+
+    const passed =
+      hasReceivedAmount &&
+      moneyEqual(
+        o.creditedAmount,
+        o.receivedAmount as number,
+      )
+
+    results.push({
+      name: 'ledger_delta_equals_received_amount',
+      passed,
+      message: passed
+        ? undefined
+        : hasReceivedAmount
+          ? 'Expected received USD ' +
+            (o.receivedAmount as number).toFixed(2) +
             ', ledger credited USD ' +
             o.creditedAmount.toFixed(2) +
             '.'
-      }
-    },
-  },
-  {
-    name: 'confirmed_payment_must_end_completed',
-    check: (o) => {
-      const passed =
-        o.chainStatus !== 'confirmed' ||
-        o.applicationStatus === 'completed'
+          : 'Scenario did not report receivedAmount.'
+    })
+  }
 
-      return {
-        name: 'confirmed_payment_must_end_completed',
-        passed,
-        message: passed
-          ? undefined
-          : 'Chain confirmed but application ended in ' +
-            o.applicationStatus +
-            ' state.'
-      }
-    },
-  },
-  {
-    name: 'duplicate_webhook_must_not_duplicate_ledger',
-    check: (o) => {
-      const passed =
-        o.webhookDeliveries <= 1 ||
-        o.ledgerEntries <= 1
+  const allowedStatuses = expectedStatuses(expected)
 
-      return {
-        name: 'duplicate_webhook_must_not_duplicate_ledger',
-        passed,
-        message: passed
-          ? undefined
-          : o.webhookDeliveries +
-            ' webhook deliveries created ' +
-            o.ledgerEntries +
-            ' ledger entries.'
-      }
-    },
-  },
-  {
-    name: 'invalid_signature_must_be_rejected',
-    check: (o) => {
-      if (o.scenario !== 'invalid_signature') {
-        return {
-          name: 'invalid_signature_must_be_rejected',
-          passed: true,
-        }
-      }
+  if (allowedStatuses !== undefined) {
+    const passed =
+      allowedStatuses.includes(o.applicationStatus)
 
-      const passed =
-        o.webhookAccepted === false &&
-        o.ledgerEntries === 0 &&
-        moneyEqual(o.creditedAmount, 0)
+    const completedOnly =
+      allowedStatuses.length === 1 &&
+      allowedStatuses[0] === 'completed'
 
-      return {
-        name: 'invalid_signature_must_be_rejected',
-        passed,
-        message: passed
-          ? undefined
-          : 'Invalidly signed webhook was accepted or changed financial state.'
-      }
-    },
-  },
-]
+    results.push({
+      name: completedOnly
+        ? 'confirmed_payment_must_end_completed'
+        : 'expected_application_status',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected application state ' +
+          allowedStatuses.join(' or ') +
+          ', observed ' +
+          o.applicationStatus +
+          '.'
+    })
+  }
 
-export function evaluateInvariants(
-  observation: PaymentObservation,
-): InvariantResult[] {
-  return invariants.map((invariant) =>
-    invariant.check(observation)
-  )
+  if (expected.retryAttempts !== undefined) {
+    const passed =
+      o.retryAttempts === expected.retryAttempts
+
+    results.push({
+      name: expected.retryAttempts === 0
+        ? 'unknown_settlement_must_not_be_retried'
+        : 'expected_retry_attempts',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected ' +
+          expected.retryAttempts +
+          ' retry attempt(s), observed ' +
+          o.retryAttempts +
+          '.'
+    })
+  }
+
+  if (expected.webhookAccepted !== undefined) {
+    const passed =
+      o.webhookAccepted === expected.webhookAccepted
+
+    results.push({
+      name: expected.webhookAccepted === false
+        ? 'invalid_signature_must_be_rejected'
+        : 'expected_webhook_acceptance',
+      passed,
+      message: passed
+        ? undefined
+        : 'Expected webhookAccepted=' +
+          expected.webhookAccepted +
+          ', observed ' +
+          String(o.webhookAccepted) +
+          '.'
+    })
+  }
+
+  if (o.scenario === 'duplicate_webhook') {
+    const passed =
+      o.webhookDeliveries <= 1 ||
+      o.ledgerEntries <= 1
+
+    results.push({
+      name: 'duplicate_webhook_must_not_duplicate_ledger',
+      passed,
+      message: passed
+        ? undefined
+        : o.webhookDeliveries +
+          ' webhook deliveries created ' +
+          o.ledgerEntries +
+          ' ledger entries.'
+    })
+  }
+
+  return results
 }

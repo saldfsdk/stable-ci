@@ -190,10 +190,18 @@ program
       const config = loadConfig(options.config)
       const adapter = createConfiguredHttpAdapter(config)
 
-      const selectedScenarios = scenarios.filter(
-        (scenario) =>
-          config.scenarios.includes(scenario.name)
-      )
+      const selectedScenarios = scenarios
+        .filter(
+          (scenario) =>
+            config.scenarios.includes(scenario.name)
+        )
+        .map((scenario) => ({
+          ...scenario,
+          expected: {
+            ...scenario.expected,
+            ...(config.expectations?.[scenario.name] ?? {}),
+          },
+        }))
 
       const results = await runSuite(
         adapter,

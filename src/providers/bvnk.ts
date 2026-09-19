@@ -14,6 +14,8 @@ function toBvnkStatus(
       return 'COMPLETE'
     case 'failed':
       return 'EXPIRED'
+    case 'underpaid':
+      return 'UNDERPAID'
   }
 }
 
@@ -24,6 +26,8 @@ export function createBvnkProvider(
     name: 'bvnk',
 
     render(event) {
+      const actualAmount = event.actualAmount ?? event.amount
+
       const payload = {
         source: 'payment',
         event: 'statusChanged',
@@ -36,12 +40,12 @@ export function createBvnkProvider(
           displayCurrency: {
             currency: event.asset,
             amount: event.amount,
-            actual: event.amount,
+            actual: actualAmount,
           },
           paidCurrency: {
             currency: event.asset,
             amount: event.amount,
-            actual: event.amount,
+            actual: actualAmount,
           },
         },
       }

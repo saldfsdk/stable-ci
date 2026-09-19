@@ -1,15 +1,39 @@
 import fs from 'node:fs'
 import { parse } from 'yaml'
 import { z } from 'zod'
-import type { ScenarioName } from './types.js'
+import type { ExpectedOutcome, ScenarioName } from './types.js'
 
 const scenarioSchema = z.enum([
   'duplicate_webhook',
   'out_of_order_webhook',
   'missing_webhook',
   'invalid_signature',
+  'underpayment',
 ])
 
+const applicationStatusSchema = z.enum([
+  'none',
+  'pending',
+  'completed',
+  'failed',
+  'manual_review',
+])
+
+const expectedOutcomeSchema = z.object({
+  applicationStatus: z.union([
+    applicationStatusSchema,
+    z.array(applicationStatusSchema),
+  ]).optional(),
+  ledgerEntries: z.number().int().nonnegative().optional(),
+  credit: z.enum([
+    'exact_expected',
+    'none',
+    'received_amount',
+    'any',
+  ]).optional(),
+  retryAttempts: z.number().int().nonnegative().optional(),
+  webhookAccepted: z.boolean().optional(),
+})
 const configSchema = z.object({
   provider: z.enum(['generic', 'bvnk']).default('generic'),
   webhookSecret: z.string().min(1).optional(),
@@ -29,6 +53,7 @@ const configSchema = z.object({
     asset: z.string().min(1),
   }),
   scenarios: z.array(scenarioSchema).min(1),
+  expectations: z.record(z.string(), expectedOutcomeSchema).optional(),
 })
 
 export type StableCiConfig = {
@@ -50,6 +75,7 @@ export type StableCiConfig = {
     asset: string
   }
   scenarios: ScenarioName[]
+  expectations?: Partial<Record<ScenarioName, ExpectedOutcome>>
 }
 
 export function loadConfig(
@@ -65,5 +91,6 @@ export function loadConfig(
   return {
     ...parsed,
     scenarios: parsed.scenarios as ScenarioName[],
+    expectations: parsed.expectations as Partial<Record<ScenarioName, ExpectedOutcome>> | undefined,
   }
 }

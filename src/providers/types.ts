@@ -1,8 +1,9 @@
 export type CanonicalWebhookEvent = {
   eventId: string
   paymentId: string
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'completed' | 'failed' | 'underpaid'
   amount: number
+  actualAmount?: number
   asset: string
 }
 

@@ -20,3 +20,10 @@ scenarios:
   - out_of_order_webhook
   - missing_webhook
   - invalid_signature
+  - underpayment
+
+expectations:
+  underpayment:
+    applicationStatus: manual_review
+    ledgerEntries: 0
+    credit: none

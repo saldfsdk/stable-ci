@@ -159,7 +159,9 @@ export async function startDemoPaymentApp(
               ? 'pending'
               : rawStatus === 'EXPIRED'
                 ? 'failed'
-                : rawStatus as ApplicationStatus
+                : rawStatus === 'UNDERPAID'
+                  ? 'manual_review'
+                  : rawStatus as ApplicationStatus
 
         const paymentId = isBvnk
           ? String(data.uuid ?? '')
@@ -210,11 +212,17 @@ export async function startDemoPaymentApp(
             state.creditedAmount = amount
           }
         } else {
-          state.applicationStatus = status
-
-          if (status === 'completed') {
+          if (rawStatus === 'UNDERPAID') {
+            state.applicationStatus = 'completed'
             state.ledgerEntries += 1
             state.creditedAmount += amount
+          } else {
+            state.applicationStatus = status
+
+            if (status === 'completed') {
+              state.ledgerEntries += 1
+              state.creditedAmount += amount
+            }
           }
         }
 
