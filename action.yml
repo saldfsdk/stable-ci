@@ -1,0 +1,37 @@
+name: Stablecoin Reliability CI
+description: Run deterministic stablecoin payment failure scenarios against your integration
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  config:
+    description: Path to stable-ci.yml relative to the repository root
+    required: false
+    default: stable-ci.yml
+
+  junit:
+    description: Path for the JUnit XML report
+    required: false
+    default: reports/stable-ci.xml
+
+runs:
+  using: composite
+  steps:
+    - name: Install stable-ci
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Build stable-ci
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm run build
+
+    - name: Run stable-ci
+      shell: bash
+      run: |
+        node "${{ github.action_path }}/dist/index.js" run \
+          --config "${{ github.workspace }}/${{ inputs.config }}" \
+          --junit "${{ github.workspace }}/${{ inputs.junit }}"
