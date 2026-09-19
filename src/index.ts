@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs'
 import { Command } from 'commander'
 import { createDemoAdapter } from './adapters/demo.js'
 import { createHttpDemoAdapter } from './adapters/http-demo.js'
@@ -9,6 +10,10 @@ import { runSuite } from './core/runner.js'
 import { writeJUnit } from './reporters/junit.js'
 import { scenarios } from './scenarios/builtins.js'
 import type { ScenarioResult } from './types.js'
+
+const packageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version: string }
 
 const program = new Command()
 
@@ -47,7 +52,7 @@ function printResults(
 program
   .name('stable-ci')
   .description('Reliability CI for stablecoin payment integrations')
-  .version('0.1.0')
+  .version(packageJson.version)
 
 program
   .command('scenarios')
